@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groq Rig Studio — تحريك المجسم بالذكاء الاصطناعي</title>
+<link rel="stylesheet" href="/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand-mark">3D</div>
+  <div><h1>Groq Rig Studio</h1><p>أنشئ حركات جديدة لمجسمك من وصف عربي</p></div>
+  <div class="server-pill"><span id="serverDot"></span><span id="serverStatus">جارٍ فحص السيرفر…</span></div>
+</header>
+<div class="layout">
+  <main id="stage">
+    <div class="viewport-tip">اسحب لتدوير الكاميرا • عجلة الماوس للتقريب • كليك يمين للتحريك</div>
+    <div id="dropHint">أفلت ملف المجسم هنا</div>
+    <div class="empty-scene" id="emptyScene"><div class="cube">◇</div><h2>ابدأ برفع مجسمك</h2><p>GLB هو الخيار الأسهل، ويدعم الموقع أيضًا GLTF وFBX</p></div>
+  </main>
+  <aside>
+    <section class="panel">
+      <div class="panel-heading"><span class="step">١</span><h2>ملف المجسم</h2></div>
+      <label class="upload">＋ اختر ملف 3D<input id="fileInput" type="file" accept=".glb,.gltf,.fbx"></label>
+      <div id="fileStatus" class="muted">لم يتم اختيار ملف بعد.</div>
+      <div class="mini-stats"><span>العظام</span><strong id="boneCount">—</strong><span>الحركات المضمنة</span><strong id="clipCount">—</strong></div>
+      <p class="hint">ملفات GLTF المنفصلة قد تحتاج ملفات الخامات المرتبطة بجانبها؛ استخدم GLB إن أمكن.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><span class="step">⚙</span><h2>إعدادات Groq API</h2></div>
+      <label for="apiKeyInput">مفتاح API</label>
+      <input id="apiKeyInput" type="password" autocomplete="off" placeholder="الصق مفتاح Groq هنا" style="width:100%;background:#202938;border:1px solid #344157;border-radius:9px;padding:11px;color:var(--text)">
+      <div class="row">
+        <button id="saveApiKey" class="primary">حفظ في السيرفر</button>
+        <button id="clearApiKey">مسح المفتاح</button>
+      </div>
+      <div id="keyStatus" class="status" aria-live="polite">المفتاح لا يُحفظ داخل ملفات الموقع؛ يبقى في ذاكرة السيرفر حتى إعادة تشغيله.</div>
+      <p class="hint">هذه الخاصية مخصصة للتشغيل المحلي داخل Acode. لا تنشر السيرفر على الإنترنت بهذا الإعداد دون إضافة تسجيل دخول.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><span class="step">٢</span><h2>وصف الحركة</h2></div>
+      <label for="prompt">اكتب الحركة التي تريدها</label>
+      <textarea id="prompt" rows="4" maxlength="700" placeholder="مثال: اجعل الشخصية تلوّح بيدها اليمنى مرتين ثم تعود لوضع الوقوف الطبيعي."></textarea>
+      <div class="examples">
+        <button class="example" data-prompt="اجعل الشخصية تلوّح بيدها اليمنى مرتين ثم تعود لوضعها الطبيعي.">تلويح باليد</button>
+        <button class="example" data-prompt="اجعل الشخصية تهز رأسها ببطء بالموافقة ثم تعيده لوضعه الطبيعي.">هز الرأس</button>
+        <button class="example" data-prompt="اجعل الذراعين يرتفعان تدريجيًا إلى الجانبين ثم ينخفضان بهدوء.">رفع الذراعين</button>
+      </div>
+      <button id="generateBtn" class="primary" disabled>✦ أنشئ الحركة بالذكاء الاصطناعي</button>
+      <div id="aiStatus" class="status" aria-live="polite">ارفع مجسمًا يحتوي على Rig أولًا.</div>
+      <div id="motionResult" class="motion-result" hidden>
+        <h3 id="motionTitle"></h3><p id="motionExplanation"></p>
+        <div class="row"><button id="playMotion" class="primary">▶ تشغيل الحركة</button><button id="stopMotion">إيقاف</button></div>
+        <label for="motionSpeed">سرعة الحركة <span id="speedLabel">1.0×</span></label>
+        <input id="motionSpeed" type="range" min="0.25" max="2" step="0.25" value="1">
+        <p class="hint" id="motionMeta"></p>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><span class="step">٣</span><h2>الحركات الأصلية</h2></div>
+      <label for="clips">حركة من الملف</label><select id="clips" disabled><option>لا توجد حركات</option></select>
+      <div class="row"><button id="playClip" disabled>▶ تشغيل الأصلية</button><button id="stopClip" disabled>إيقاف</button></div>
+      <p class="hint">الحركة التي ينشئها AI هي حركة إجرائية تقريبية من مفاتيح دوران العظام، وليست التقاط حركة احترافيًا. النتيجة تعتمد على أسماء العظام واتجاهاتها والـ Rig.</p>
+    </section>
+    <footer>مفتاح Groq محفوظ في السيرفر ولا يُرسل إلى المتصفح. لا تضع المفتاح في ملفات الواجهة.</footer>
+  </aside>
+</div>
+</body>
+</html>
